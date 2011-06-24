@@ -268,6 +268,7 @@ class Puppet::Parser::Lexer
     KEYWORDS.add_tokens(
 
       "case" => :CASE,
+      "foreach" => :FOREACH,
       "class" => :CLASS,
       "default" => :DEFAULT,
       "define" => :DEFINE,

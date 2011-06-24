@@ -4,6 +4,7 @@
 
 class Puppet::Parser::Parser
 
+token FOREACH
 token STRING DQPRE DQMID DQPOST
 token LBRACK  RBRACK LBRACE RBRACE SYMBOL FARROW COMMA TRUE
 token FALSE EQUALS APPENDS LESSEQUAL NOTEQUAL DOT COLON LLCOLLECT RRCOLLECT
@@ -59,6 +60,7 @@ statement_or_declaration:    resource
   | collection
   | assignment
   | casestatement
+  | foreachstatement
   | ifstatement_begin
   | import
   | fstatement
@@ -486,6 +488,11 @@ expression:   rvalue
   | LPAREN expression RPAREN {
     result = val[1]
 }
+
+foreachstatement: FOREACH LPAREN expression RPAREN LBRACE statements RBRACE {
+  @lexer.commentpop
+  result = ast AST::ForeachStatement, :data => val[2], :statements => val[5]
+} | FOREACH LPAREN expression RPAREN LBRACE RBRACE { }
 
 casestatement:  CASE expression LBRACE caseopts RBRACE {
   @lexer.commentpop
