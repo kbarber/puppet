@@ -13,7 +13,7 @@ class Puppet::Resource::Type
 
   RESOURCE_SUPERTYPES = [:hostclass, :node, :definition]
 
-  attr_accessor :file, :line, :doc, :code, :ruby_code, :parent, :resource_type_collection
+  attr_accessor :file, :line, :doc, :code, :ruby_code, :parent, :resource_type_collection, :schema
   attr_reader :type, :namespace, :arguments, :behaves_like, :module_name
 
   RESOURCE_SUPERTYPES.each do |t|
@@ -34,7 +34,7 @@ class Puppet::Resource::Type
   end
 
   def to_pson_data_hash
-    data = [:doc, :line, :file, :parent].inject({}) do |hash, param|
+    data = [:doc, :line, :file, :parent, :schema].inject({}) do |hash, param|
       next hash unless (value = self.send(param)) and (value != "")
       hash[param.to_s] = value
       hash
@@ -87,6 +87,36 @@ class Puppet::Resource::Type
     [:code, :doc, :line, :file, :parent].each do |param|
       next unless value = options[param]
       send(param.to_s + "=", value)
+    end
+
+    # Grab schema
+    if options[:file] and @type.eql?(:hostclass) then
+      schema_file = options[:file].gsub(/\.(rb|pp)$/, ".schema")
+      if File.exists?(schema_file) then
+        # just use the file provided for a schema
+        @schema = YAML.load_file(schema_file)
+      elsif options[:arguments] then
+        # if there is no file turn the argument list into a schema
+        mapping = {}
+        options[:arguments].each { |k,v|
+          if v then
+            mapping[k.to_s] = {
+              "type" => "str",
+              "required" => false,
+              "default" => convert_from_ast(v),
+            }
+          else
+            mapping[k.to_s] = {
+              "type" => "str",
+              "required" => true,
+            }
+          end
+        }
+        @schema = {
+          "type" => "map",
+          "mapping" => mapping,
+        }
+      end
     end
 
     set_arguments(options[:arguments])

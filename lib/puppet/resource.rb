@@ -372,7 +372,8 @@ class Puppet::Resource
   end
 
   # Verify that all required arguments are either present or
-  # have been provided with defaults.
+  # have been provided with defaults. If a schema is present
+  # we also do kwalify schema validation.
   # Must be called after 'set_default_parameters'.  We can't join the methods
   # because Type#set_parameters needs specifically ordered behavior.
   def validate_complete
@@ -382,6 +383,28 @@ class Puppet::Resource
       param = param.to_sym
       fail Puppet::ParseError, "Must pass #{param} to #{self}" unless parameters.include?(param)
     end
+
+    # Here we do kwalify schema checking
+    if type.eql?("Class") and parameters != {} and resource_type.schema then
+      munged_parameters = {}
+      parameters.each do |k,v|
+        munged_parameters[k.to_s] = v.value
+      end
+
+      require 'kwalify'
+  
+      validator = Kwalify::Validator.new(resource_type.schema)
+      errors = validator.validate(munged_parameters)
+    
+      if errors && !errors.empty?
+        error_out = []
+        for e in errors
+          error_out << "[#{e.path}] #{e.message}"
+        end
+        fail Puppet::ParseError, "Failed kwalify schema validation:\n" + error_out.join("\n")
+      end
+    end
+
   end
 
   def validate_parameter(name)
