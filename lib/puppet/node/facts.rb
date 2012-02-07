@@ -47,13 +47,6 @@ class Puppet::Node::Facts
     end
   end
 
-  # Convert all fact values into strings.
-  def stringify
-    values.each do |fact, value|
-      values[fact] = value.to_s
-    end
-  end
-
   def ==(other)
     return false unless self.name == other.name
     strip_internal == other.send(:strip_internal)
