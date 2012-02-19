@@ -140,6 +140,11 @@ Copyright (c) 2011 Puppet Labs, LLC Licensed under the Apache 2.0 License
   end
 
   def run_command
+    if !Puppet.features.facter?
+      # TODO: set the exit code correctly
+      exit(1)
+    end
+
     if options[:node]
       compile
     else
