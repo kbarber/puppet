@@ -164,11 +164,6 @@ Copyright (c) 2011 Puppet Labs, LLC Licensed under the Apache 2.0 License
   end
 
   def main
-    if !Puppet.features.facter?
-      # TODO: set the exit code correctly
-      exit(1)
-    end
-
     # Set our code or file to use.
     if options[:code] or command_line.args.length == 0
       Puppet[:code] = options[:code] || STDIN.read

@@ -19,8 +19,7 @@ Puppet.features.add(:facter) do
     if facter_version >= required_version
       true
     else
-      Puppet.err "Facter 2.0.0 or greater required for Puppet to operate"
-      false
+      raise Puppet::Error, "Facter 2.0.0 or greater required for Puppet to operate"
     end
   end
 end
