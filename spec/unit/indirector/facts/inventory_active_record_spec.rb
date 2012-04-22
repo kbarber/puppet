@@ -66,7 +66,7 @@ describe "Puppet::Node::Facts::InventoryActiveRecord", :if => can_use_scratch_da
       facts = Puppet::Node::Facts.new("foo", "uptime_days" => "30", "kernel" => "Darwin")
       Puppet::Node::Facts.indirection.save(facts)
       bar_facts = Puppet::Node::Facts.new("bar", "uptime_days" => "35", "kernel" => "Linux")
-      foo_facts = Puppet::Node::Facts.new("foo", "uptime_days" => "60", "is_virtual" => "false")
+      foo_facts = Puppet::Node::Facts.new("foo", "uptime_days" => "60", "is_virtual" => false)
       Puppet::Node::Facts.indirection.save(bar_facts)
       Puppet::Node::Facts.indirection.save(foo_facts)
 

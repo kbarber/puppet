@@ -80,14 +80,6 @@ describe Puppet::Node::Facts::Facter do
       @facter.find(@request)
     end
 
-    it "should convert all facts into strings" do
-      facts = Puppet::Node::Facts.new("foo")
-      Puppet::Node::Facts.expects(:new).returns facts
-      facts.expects(:stringify)
-
-      @facter.find(@request)
-    end
-
     it "should call the downcase hook" do
       facts = Puppet::Node::Facts.new("foo")
       Puppet::Node::Facts.expects(:new).returns facts
