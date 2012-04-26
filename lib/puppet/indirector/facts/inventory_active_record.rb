@@ -34,24 +34,48 @@ class Puppet::Node::Facts::InventoryActiveRecord < Puppet::Indirector::ActiveRec
 
   def search(request)
     return [] unless request.options
-    matching_nodes = []
-    fact_names = []
+
     fact_filters = Hash.new {|h,k| h[k] = []}
     meta_filters = Hash.new {|h,k| h[k] = []}
-    request.options.each do |key,value|
-      type, name, operator = key.to_s.split(".")
-      operator ||= "eq"
-      if type == "facts"
-        fact_filters[operator] << [name,value]
-      elsif type == "meta" and name == "timestamp"
-        meta_filters[operator] << [name,value]
+
+    if q_json = request.options[:q]
+      q = JSON.parse(q_json)
+      q.each do |type,queries|
+        queries.each do |query|
+          operator = query['comp']
+          name = query['name']
+          value = query['val']
+          if type == 'facts'
+            fact_filters[operator] << [name,value]
+          elsif type == 'meta' and name == 'timestamp'
+            meta_filters[operator] << [name,value]
+          end
+        end
+      end
+    else
+      request.options.each do |key,value|
+        type, name, operator = key.to_s.split(".")
+        operator ||= "eq"
+        if type == "facts"
+          fact_filters[operator] << [name,value]
+        elsif type == "meta" and name == "timestamp"
+          meta_filters[operator] << [name,value]
+        end
       end
     end
+
+    puts fact_filters.inspect
 
     matching_nodes = nodes_matching_fact_filters(fact_filters) + nodes_matching_meta_filters(meta_filters)
 
     # to_a because [].inject == nil
-    matching_nodes.inject {|nodes,this_set| nodes & this_set}.to_a.sort
+    nodes = matching_nodes.inject {|nodes,this_set| nodes & this_set}.to_a.sort
+    nodes.collect { |node_name|
+      node = Puppet::Rails::InventoryNode.find_by_name(node_name)
+      facts = Puppet::Node::Facts.new(node.name, node.facts_to_hash)
+      facts.timestamp = node.timestamp
+      facts
+    }
   end
 
   private
