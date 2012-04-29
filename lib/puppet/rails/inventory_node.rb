@@ -8,6 +8,13 @@ class Puppet::Rails::InventoryNode < ::ActiveRecord::Base
     ActiveRecord::NamedScope::ClassMethods.module_eval { alias :scope :named_scope }
   end
 
+  scope :has_fact, lambda { |name|
+    {
+      :conditions => ["inventory_facts.name = ?", name],
+      :joins => :facts
+    }
+  }
+
   scope :has_fact_with_value, lambda { |name,value|
     {
       :conditions => ["inventory_facts.name = ? AND inventory_facts.value = ?", name, value.to_s],
