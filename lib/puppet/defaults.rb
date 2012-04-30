@@ -353,12 +353,12 @@ module Puppet
     }
   )
 
-  hostname = Facter["hostname"].value
-  domain = Facter["domain"].value
+  hostname = Facter["hostname"].value if Puppet.features.facter?
+  domain = Facter["domain"].value if Puppet.features.facter?
   if domain and domain != ""
     fqdn = [hostname, domain].join(".")
   else
-    fqdn = hostname
+    fqdn = hostname || "" # make sure we at least have an empty string
   end
 
 
@@ -1219,7 +1219,7 @@ EOT
     },
 
     :reportfrom => {
-        :default  => "report@" + [Facter["hostname"].value,Facter["domain"].value].join("."),
+        :default  => "report@" + ( Puppet.features.facter? ? [Facter["hostname"].value,Facter["domain"].value].join(".") : "" ),
         :desc     => "The 'from' email address for the reports.",
     },
 
