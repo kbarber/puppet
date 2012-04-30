@@ -6,7 +6,6 @@ end
 
 # see the bottom of the file for further inclusions
 require 'singleton'
-require 'facter'
 require 'puppet/error'
 require 'puppet/util'
 require 'puppet/util/autoload'
@@ -126,7 +125,7 @@ module Puppet
 
   # We don't want to continue if Facter is not around, or isn't feature
   # compliant
-  exit(1) if !Puppet.features.facter?
+  exit(1) unless Puppet.features.facter?
 end
 
 # This feels weird to me; I would really like for us to get to a state where there is never a "require" statement
