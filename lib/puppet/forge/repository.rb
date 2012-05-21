@@ -66,6 +66,16 @@ class Puppet::Forge
       return read_response(request)
     end
 
+    # Return a Net::HTTPResponse from a post to the +request_path+.
+    def make_http_post(request_path, form_data)
+      request = Net::HTTP::Post.new(request_path, { "User-Agent" => user_agent })
+      request.set_form_data(form_data)
+      if ! @uri.user.nil? && ! @uri.password.nil?
+        request.basic_auth(@uri.user, @uri.password)
+      end
+      return read_response(request)
+    end
+
     # Return a Net::HTTPResponse read from this HTTPRequest +request+.
     def read_response(request)
       begin

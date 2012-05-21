@@ -49,6 +49,16 @@ class Puppet::Forge
     matches
   end
 
+  def create_user(options)
+    response = repository.make_http_post("/api/v1/user.json", options)
+    case response.code
+    when "200"
+      matches = PSON.parse(response.body)
+    else
+      raise RuntimeError, "Could not create user (HTTP #{response.code})"
+    end
+  end
+
   def remote_dependency_info(author, mod_name, version)
     version_string = version ? "&version=#{version}" : ''
     response = repository.make_http_request("/api/v1/releases.json?module=#{author}/#{mod_name}#{version_string}")
