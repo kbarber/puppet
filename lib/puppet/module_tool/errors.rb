@@ -4,6 +4,7 @@ module Puppet::ModuleTool
     require 'puppet/module_tool/errors/installer'
     require 'puppet/module_tool/errors/uninstaller'
     require 'puppet/module_tool/errors/upgrader'
+    require 'puppet/module_tool/errors/signup'
     require 'puppet/module_tool/errors/shared'
   end
 end
