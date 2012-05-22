@@ -1,3 +1,4 @@
+# This class includes a number of utility methods for dealing with the terminal.
 module Puppet::Util::Terminal
   # Attempts to determine the width of the terminal.  This is currently only
   # supported on POSIX systems, and relies on the claims of `stty` (or `tput`).
@@ -16,11 +17,17 @@ module Puppet::Util::Terminal
 
   # Prompt for input on STDOUT and receive a response from a user from STDIN.
   #
-  # @param [String] prompt Prompt to display to the user
-  # @param [Hash] opts Options
-  # @options opts [Boolean] :silent If true, do not echo the response to the screen
-  # @return [String] The response from the user
-  def prompt(prompt = '', opts={})
+  # @note Currently only Windows and Unix terminals are supported.
+  # @param [String] prompt Prompt to display to the user.
+  # @option opts [Boolean] :silent If true, do not echo the response to the
+  #   screen. This is useful for password prompts and other secrets.
+  # @return [String] The response collected from STDIN.
+  # @example Prompt for a username
+  #   username = Puppet::Util::Terminal.prompt "Username: "
+  # @example Prompt for a password
+  #   password = Puppet::Util::Terminal.prompt "Password: ", :silent => true
+  # @raise [RuntimeError] If we are unable to disable echo using stty.
+  def self.prompt(prompt = '', opts={})
     print prompt
 
     unless opts[:silent]
@@ -49,4 +56,5 @@ module Puppet::Util::Terminal
       end
     end
   end
+
 end
