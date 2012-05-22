@@ -6,13 +6,23 @@ require 'puppet/forge/cache'
 require 'puppet/forge/repository'
 require 'puppet/forge/errors'
 
+# This class represents the main user object for the Forge client API.
 class Puppet::Forge
-  # +consumer_name+ is a name to be used for identifying the consumer of the
-  # forge and +consumer_semver+ is a SemVer object to identify the version of
-  # the consumer
-  def initialize(consumer_name, consumer_semver)
-    @consumer_name = consumer_name
-    @consumer_semver = consumer_semver
+
+  # Create a new instance of the Forge client API
+  #
+  # @option opts [String] :username Username to use for HTTP basic
+  #   authentication
+  # @option opts [String] :password Password to use for HTTP basic
+  #   authentication
+  # @option opts [String] :auth_token Authentication token to use when
+  #   interacting with the Forge.
+  # @option opts [String] :consumer_name A name to be used for identifying the
+  #   consumer of the Forge.
+  # @option opts [SemVer] :consumer_semver Is a SemVer object to identify the
+  #   version of the consumer
+  def initialize(opts={})
+    @opts = opts
   end
 
   # Return a list of module metadata hashes that match the search query.
@@ -37,7 +47,7 @@ class Puppet::Forge
   def search(term)
     server = Puppet.settings[:module_repository]
     Puppet.notice "Searching #{server} ..."
-    response = repository.make_http_request("/modules.json?q=#{URI.escape(term)}")
+    response = repository.get("/modules.json?q=#{URI.escape(term)}")
 
     case response.code
     when "200"
@@ -49,19 +59,9 @@ class Puppet::Forge
     matches
   end
 
-  def create_user(options)
-    response = repository.make_http_post("/api/v1/user.json", options)
-    case response.code
-    when "200"
-      matches = PSON.parse(response.body)
-    else
-      raise RuntimeError, "Could not create user (HTTP #{response.code})"
-    end
-  end
-
   def remote_dependency_info(author, mod_name, version)
     version_string = version ? "&version=#{version}" : ''
-    response = repository.make_http_request("/api/v1/releases.json?module=#{author}/#{mod_name}#{version_string}")
+    response = repository.get("/api/v1/releases.json?module=#{author}/#{mod_name}#{version_string}")
     json = PSON.parse(response.body) rescue {}
     case response.code
     when "200"
@@ -75,6 +75,68 @@ class Puppet::Forge
       end
     end
   end
+
+  # @!group User Related Instance Methods
+
+  # Create a user on the forge.
+  #
+  # @todo Document opts hash
+  def create_user(opts)
+    response = repository.post("/api/v1/user.json", opts)
+    case response.code
+    when "200"
+      matches = PSON.parse(response.body)
+    else
+      begin
+        error_hash = PSON.parse(response.body)
+        error = error_hash['error'] || 'Unknown'
+      rescue PSON::ParseError
+        error = response.body
+      ensure
+        raise RuntimeError, "HTTP Error: #{error} (Status #{response.code})"
+      end
+    end
+  end
+
+  # Obtain user form
+  def user_form
+    response = repository.options("/api/v1/user.json")
+    case response.code
+    when '200'
+      matches = PSON.parse(response.body)
+    else
+      begin
+        error_hash = PSON.parse(response.body)
+        error = error_hash['error'] || 'Unknown'
+      rescue PSON::ParseError
+        error = response.body
+      ensure
+        raise RuntimeError, "HTTP Error: #{error} (Status #{response.code})"
+      end
+    end
+  end
+
+  # @!group Token Related Instance Methods
+
+  # Obtain the current user token for the authenticated forge account.
+  def token
+    response = repository.get("/api/v1/token.json")
+    case response.code
+    when "200"
+      matches = PSON.parse(response.body)
+    else
+      begin
+        error_hash = PSON.parse(response.body)
+        error = error_hash['error'] || 'Unknown'
+      rescue PSON::ParseError
+        error = response.body
+      ensure
+        raise RuntimeError, "HTTP Error: #{error} (Status #{response.code})"
+      end
+    end
+  end
+
+  # @!endgroup
 
   def get_release_packages_from_repository(install_list)
     install_list.map do |release|
@@ -117,8 +179,7 @@ class Puppet::Forge
   end
 
   def repository
-    version = "#{@consumer_name}/#{[@consumer_semver.major, @consumer_semver.minor, @consumer_semver.tiny].join('.')}#{@consumer_semver.special}"
-    @repository ||= Puppet::Forge::Repository.new(Puppet[:module_repository], version)
+    @repository ||= Puppet::Forge::Repository.new(Puppet[:module_repository], @opts)
   end
   private :repository
 end

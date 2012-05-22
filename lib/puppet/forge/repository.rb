@@ -13,12 +13,12 @@ class Puppet::Forge
     attr_reader :uri, :cache
 
     # Instantiate a new repository instance rooted at the +url+.
-    # The agent will report +consumer_version+ in the User-Agent to
-    # the repository.
-    def initialize(url, consumer_version)
+    #
+    # @param [String, URI] uri URI of the Forge.
+    def initialize(uri, opts)
+      @opts = opts
       @uri = url.is_a?(::URI) ? url : ::URI.parse(url)
       @cache = Cache.new(self)
-      @consumer_version = consumer_version
     end
 
     # Read HTTP proxy configurationm from Puppet's config file, or the
@@ -58,20 +58,30 @@ class Puppet::Forge
     end
 
     # Return a Net::HTTPResponse read for this +request_path+.
-    def make_http_request(request_path)
+    def get(request_path, params={})
       request = Net::HTTP::Get.new(request_path, { "User-Agent" => user_agent })
-      if ! @uri.user.nil? && ! @uri.password.nil?
-        request.basic_auth(@uri.user, @uri.password)
+      if ! @opts[:username].nil? && ! @opts[:password].nil?
+        request.basic_auth(@opts[:username], @opts[:password])
       end
       return read_response(request)
     end
 
     # Return a Net::HTTPResponse from a post to the +request_path+.
-    def make_http_post(request_path, form_data)
+    def post(request_path, params={})
       request = Net::HTTP::Post.new(request_path, { "User-Agent" => user_agent })
-      request.set_form_data(form_data)
-      if ! @uri.user.nil? && ! @uri.password.nil?
-        request.basic_auth(@uri.user, @uri.password)
+      request.set_form_data(params)
+      if ! @opts[:username].nil? && ! @opts[:password].nil?
+        request.basic_auth(@opts[:username], @opts[:password])
+      end
+      return read_response(request)
+    end
+
+    # Return a Net::HTTPResponse from an options request to the +request_path+.
+    def options(request_path, params={})
+      request = Net::HTTPGenericRequest.new('OPTIONS', true, true, request_path)
+      request.set_form_data(params)
+      if ! @opts[:username].nil? && ! @opts[:password].nil?
+        request.basic_auth(@opts[:username], @opts[:password])
       end
       return read_response(request)
     end
@@ -126,9 +136,13 @@ class Puppet::Forge
     end
 
     def user_agent
-      "#{@consumer_version} Puppet/#{Puppet.version} (#{Facter.value(:operatingsystem)} #{Facter.value(:operatingsystemrelease)}) #{ruby_version}"
+      "#{consumer_version} Puppet/#{Puppet.version} (#{Facter.value(:operatingsystem)} #{Facter.value(:operatingsystemrelease)}) #{ruby_version}"
     end
     private :user_agent
+
+    def consumer_version
+      "#{@opts[:consumer_name]}/#{[@opts[:consumer_semver].major, @opts[:consumer_semver].minor, @opts[:consumer_semver].tiny].join('.')}#{@opts[:consumer_semver].special}"
+    end
 
     def ruby_version
       # the patchlevel is not available in ruby 1.8.5

@@ -122,7 +122,7 @@ Puppet::Face.define(:module, '1.0.0') do
       Puppet::ModuleTool.set_option_defaults options
       Puppet.notice "Preparing to install into #{options[:target_dir]} ..."
 
-      forge = Puppet::Forge.new("PMT", self.version)
+      forge = Puppet::Forge.new(:consumer_name => "PMT", :consumer_semver => self.version)
       install_dir = Puppet::ModuleTool::InstallDirectory.new(Pathname.new(options[:target_dir]))
       installer = Puppet::ModuleTool::Applications::Installer.new(name, forge, install_dir, options)
 
