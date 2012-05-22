@@ -17,7 +17,7 @@ Puppet::Face.define(:module, '1.0.0') do
 
     when_invoked do |options|
       Puppet::ModuleTool.set_option_defaults options
-      Puppet::ModuleTool::Applications::Signup.run(Puppet::Forge.new("PMT", self.version), options)
+      Puppet::ModuleTool::Applications::Signup.run(self.version, options)
     end
 
     when_rendering :console do |result|
