@@ -99,6 +99,8 @@ class Puppet::Forge
   end
 
   # Obtain user form
+  #
+  # @todo Document return
   def user_form
     response = repository.options("/api/v1/user.json")
     case response.code
