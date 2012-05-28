@@ -73,16 +73,6 @@ class Puppet::Forge
       return read_response(request)
     end
 
-    # Return a Net::HTTPResponse from an options request to the +request_path+.
-    def options(request_path, params={})
-      request = Net::HTTPGenericRequest.new('OPTIONS', true, true, request_path)
-      request.set_form_data(params)
-      if ! @opts[:username].nil? && ! @opts[:password].nil?
-        request.basic_auth(@opts[:username], @opts[:password])
-      end
-      return read_response(request)
-    end
-
     # Return a Net::HTTPResponse read from this HTTPRequest +request+.
     def read_response(request)
       begin
