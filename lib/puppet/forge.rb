@@ -76,48 +76,6 @@ class Puppet::Forge
     end
   end
 
-  # @!group User Related Instance Methods
-
-  # Create a user on the forge.
-  #
-  # @todo Document opts hash
-  def create_user(opts)
-    response = repository.post("/api/v1/user.json", opts)
-    case response.code
-    when "200"
-      matches = PSON.parse(response.body)
-    else
-      begin
-        error_hash = PSON.parse(response.body)
-        error = error_hash['error'] || 'Unknown'
-      rescue PSON::ParseError
-        error = response.body
-      ensure
-        raise RuntimeError, "HTTP Error: #{error} (Status #{response.code})"
-      end
-    end
-  end
-
-  # Obtain user form
-  #
-  # @todo Document return
-  def user_form
-    response = repository.options("/api/v1/user.json")
-    case response.code
-    when '200'
-      matches = PSON.parse(response.body)
-    else
-      begin
-        error_hash = PSON.parse(response.body)
-        error = error_hash['error'] || 'Unknown'
-      rescue PSON::ParseError
-        error = response.body
-      ensure
-        raise RuntimeError, "HTTP Error: #{error} (Status #{response.code})"
-      end
-    end
-  end
-
   # @!group Token Related Instance Methods
 
   # Obtain the current user token for the authenticated forge account.

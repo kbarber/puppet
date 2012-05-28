@@ -11,6 +11,5 @@ module Puppet::ModuleTool
     require 'puppet/module_tool/applications/unpacker'
     require 'puppet/module_tool/applications/uninstaller'
     require 'puppet/module_tool/applications/upgrader'
-    require 'puppet/module_tool/applications/signup'
   end
 end
