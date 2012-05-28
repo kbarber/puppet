@@ -73,6 +73,31 @@ class Puppet::Forge
       return read_response(request)
     end
 
+    # Specific helper for submitting commands to the commands API on the forge
+    #
+    # @param command [String] command to send to the forge.
+    # @param version [Fixnum] version of the command.
+    # @param payload [String] string of payload. For complex structures it is
+    #   recommended to use JSON, or for binary data you can use base64.
+    # @return [Net::HTTPResponse] object representation of the http response.
+    def submit_command(command, version, payload)
+      path = "/api/v1/commands"
+
+      command = {
+        :command => command,
+        :version => version,
+        :payload => payload,
+      }
+      command_json = command.to_pson
+
+      params = {
+        'payload'  => command_json,
+        'checksum' => Digest::SHA1.hexdigest(command_json),
+      }
+
+      post(path, params)
+    end
+
     # Return a Net::HTTPResponse read from this HTTPRequest +request+.
     def read_response(request)
       begin

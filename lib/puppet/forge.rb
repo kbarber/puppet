@@ -95,6 +95,22 @@ class Puppet::Forge
     end
   end
 
+  # @!group Module Related Instance Methods
+
+  # Publish a module to the forge using a module package file
+  #
+  # @param file [File] the file reference to publish
+  def module_publish(file)
+    original = file.read
+
+    base64 = Base64.encode64(original)
+    payload = {
+      'module' => base64,
+    }
+
+    response = repository.submit_command("publish module", 1, payload.to_pson)
+  end
+
   # @!endgroup
 
   def get_release_packages_from_repository(install_list)
