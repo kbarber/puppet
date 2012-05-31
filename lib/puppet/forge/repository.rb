@@ -60,7 +60,7 @@ class Puppet::Forge
       if ! @opts[:username].nil? && ! @opts[:password].nil?
         request.basic_auth(@opts[:username], @opts[:password])
       elsif ! @opts[:auth_token].nil?
-        request['X-AUTH-TOKEN'] = @opts[:auth_token]
+        request['X-Auth-Token'] = @opts[:auth_token]
       end
       return read_response(request)
     end
@@ -72,7 +72,7 @@ class Puppet::Forge
       if ! @opts[:username].nil? && ! @opts[:password].nil?
         request.basic_auth(@opts[:username], @opts[:password])
       elsif ! @opts[:auth_token].nil?
-        request['X-AUTH-TOKEN'] = @opts[:auth_token]
+        request['X-Auth-Token'] = @opts[:auth_token]
       end
       return read_response(request)
     end
@@ -92,11 +92,11 @@ class Puppet::Forge
         :version => version,
         :payload => payload,
       }
-      command_json = command.to_pson
+      command_pson = command.to_pson
 
       params = {
-        'payload'  => command_json,
-        'checksum' => Digest::SHA1.hexdigest(command_json),
+        'payload'  => command_pson,
+        'checksum' => Digest::SHA1.hexdigest(command_pson),
       }
 
       post(path, params)
