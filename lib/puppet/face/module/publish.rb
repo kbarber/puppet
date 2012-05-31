@@ -17,35 +17,50 @@ Puppet::Face.define(:module, '1.0.0') do
       TODO
     EOT
 
-    arguments "<module_file>"
+    arguments "[<module_file>]"
 
-    when_invoked do |module_file, options|
+    when_invoked do |*args|
+      options = args.pop
+      if options.nil? or args.length > 1 then
+        raise ArgumentError, "puppet module publish only accepts 1 or 0 arguments"
+      end
       Puppet::ModuleTool.set_option_defaults options
 
-      token = nil
-      File.open(Puppet[:forge_credentials], 'r') do |file|
-        creds = PSON.parse(file.read)
-        token = creds['authentication_token']
+      module_file = args.pop
+      if module_file.nil?
+        puts "Building current package ..."
+        builder = Puppet::ModuleTool::Applications::Builder.new(Dir.pwd)
+        module_file = builder.run
       end
 
-      # TODO: really need token auth!
-      # Prompt for username
-      # Prompt for password
-      username = Puppet::Util::Terminal.prompt "Username: "
-      password = Puppet::Util::Terminal.prompt "Password: ", :silent => true
+      if File.exists?(Puppet[:forge_credentials])
+        token = nil
+        File.open(Puppet[:forge_credentials], 'r') do |file|
+          creds = PSON.parse(file.read)
+          token = creds['authentication_token']
+        end
 
-      forge = Puppet::Forge.new(
-        :consumer_name => "PMT",
-        :consumer_semver => self.version,
-#        :auth_token => token
-        :username => username,
-        :password => password
-      )
+        forge = Puppet::Forge.new(
+          :consumer_name => "PMT",
+          :consumer_semver => self.version,
+          :auth_token => token
+        )
+      else
+        username = Puppet::Util::Terminal.prompt "Username: "
+        password = Puppet::Util::Terminal.prompt "Password: ", :silent => true
+
+        forge = Puppet::Forge.new(
+          :consumer_name => "PMT",
+          :consumer_semver => self.version,
+          :username => username,
+          :password => password
+        )
+      end
 
       begin
         result = forge.module_publish(File.open(module_file))
         result.body
-      rescue RuntimeError
+      rescue RuntimeError => e
         # TODO: handle failure ...
         {}
       end
