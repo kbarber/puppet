@@ -38,13 +38,25 @@ module Puppet
       end
     end
 
+    # Find the module root when given a path by checking each directory up from
+    # its current location until it finds one that contains a file called
+    # 'Modulefile'.
+    #
+    # @param path [String] path to start from
+    # @return [String] the root path of the module directory
     def self.find_module_root(path)
-      for dir in [path, Dir.pwd].compact
-        if File.exist?(File.join(dir, 'Modulefile'))
-          return dir
+      pn = Pathname.new(File.expand_path(path))
+      result = nil
+      pn.ascend do |path|
+        if result.nil? and File.exists?(File.join(path, 'Modulefile'))
+          result = path
         end
       end
-      raise ArgumentError, "Could not find a valid module at #{path ? path.inspect : 'current directory'}"
+      if result.nil?
+        raise ArgumentError, "Could not find a valid module at #{path ? path.inspect : 'current directory'}"
+      else
+        return result
+      end
     end
 
     # Builds a formatted tree from a list of node hashes containing +:text+
