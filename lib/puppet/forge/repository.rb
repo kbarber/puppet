@@ -62,6 +62,8 @@ class Puppet::Forge
       request = Net::HTTP::Get.new(request_path, { "User-Agent" => user_agent })
       if ! @opts[:username].nil? && ! @opts[:password].nil?
         request.basic_auth(@opts[:username], @opts[:password])
+      elsif ! @opts[:auth_token].nil?
+        request['X-AUTH-TOKEN'] = @opts[:auth_token]
       end
       return read_response(request)
     end
@@ -72,6 +74,8 @@ class Puppet::Forge
       request.set_form_data(params)
       if ! @opts[:username].nil? && ! @opts[:password].nil?
         request.basic_auth(@opts[:username], @opts[:password])
+      elsif ! @opts[:auth_token].nil?
+        request['X-AUTH-TOKEN'] = @opts[:auth_token]
       end
       return read_response(request)
     end
