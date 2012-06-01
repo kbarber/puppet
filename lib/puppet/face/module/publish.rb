@@ -1,10 +1,13 @@
 Puppet::Face.define(:module, '1.0.0') do
   action(:publish) do
     summary "Publish to the forge"
-    description <<-HEREDOC
+    description <<-EOT
       Publishes a module to the forge
-    HEREDOC
-    returns "TODO"
+    EOT
+
+    returns <<-EOT
+      TODO
+    EOT
 
     examples <<-EOT
       Publish a module by specifying the file name:
@@ -22,17 +25,19 @@ Puppet::Face.define(:module, '1.0.0') do
     when_invoked do |*args|
       options = args.pop
       if options.nil? or args.length > 1 then
-        raise ArgumentError, "puppet module publish only accepts 1 or 0 arguments"
+        raise ArgumentError, "puppet module publish only accepts 0 or 1 arguments"
       end
-      Puppet::ModuleTool.set_option_defaults options
 
-      module_file = args.pop
+      module_file = args.first
+
+      # If no module file was passed, try and do a build action on the current
+      # directory.
       if module_file.nil?
-        puts "Building current package ..."
-        builder = Puppet::ModuleTool::Applications::Builder.new(Dir.pwd)
-        module_file = builder.run
+        module_file = Puppet::Face[:module, '1.0.0'].build(Dir.pwd)
       end
 
+      # Depending on whether there is a credentials file, attempt token auth
+      # or http basic auth.
       if File.exists?(Puppet[:forge_credentials])
         token = nil
         File.open(Puppet[:forge_credentials], 'r') do |file|
@@ -46,6 +51,8 @@ Puppet::Face.define(:module, '1.0.0') do
           :auth_token => token
         )
       else
+        puts "Credentials file does not exist, falling back to basic auth."
+        puts "See 'puppet help module login' for more details."
         username = Puppet::Util::Terminal.prompt "Username: "
         password = Puppet::Util::Terminal.prompt "Password: ", :silent => true
 
@@ -57,17 +64,13 @@ Puppet::Face.define(:module, '1.0.0') do
         )
       end
 
-      begin
-        result = forge.module_publish(File.open(module_file))
-        result.body
-      rescue RuntimeError => e
-        # TODO: handle failure ...
-        {}
-      end
+      result = forge.module_publish(File.open(module_file))
+      result.body
     end
 
     when_rendering :console do |result|
       result.inspect
+      "Module submitted for publishing"
     end
   end
 
