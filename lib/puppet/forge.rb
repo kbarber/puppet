@@ -1,4 +1,3 @@
-require 'net/http'
 require 'open-uri'
 require 'pathname'
 require 'uri'
@@ -76,6 +75,31 @@ class Puppet::Forge
     end
   end
 
+  # @!group Command Related Instance Methods
+
+  # Generic helper for submitting commands to the commands API on the forge
+  #
+  # @param command [String] command to send to the forge.
+  # @param version [Fixnum] version of the command.
+  # @param payload [String] string of payload. For complex structures it is
+  #   recommended to use JSON, or for binary data you can use base64.
+  # @return [Net::HTTPResponse] object representation of the http response.
+  def submit_command(command, version, payload)
+    command = {
+      :command => command,
+      :version => version,
+      :payload => payload,
+    }
+    command_pson = command.to_pson
+
+    params = {
+      'payload'  => command_pson,
+      'checksum' => Digest::SHA1.hexdigest(command_pson),
+    }
+
+    repository.post("/api/v1/commands", params)
+  end
+
   # @!group Token Related Instance Methods
 
   # Obtain the current user token for the authenticated forge account.
@@ -109,7 +133,20 @@ class Puppet::Forge
       'module' => base64,
     }
 
-    response = repository.submit_command("publish module", 1, payload.to_pson)
+    response = submit_command("publish module", 1, payload.to_pson)
+    case response.code
+    when "200"
+      matches = PSON.parse(response.body)
+    else
+      begin
+        error_hash = PSON.parse(response.body)
+        error = error_hash['error'] || 'Unknown'
+      rescue PSON::ParseError
+        error = response.body
+      ensure
+        raise RuntimeError, "HTTP Error: #{error} (Status #{response.code})"
+      end
+    end
   end
 
   # @!endgroup

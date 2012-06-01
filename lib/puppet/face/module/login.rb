@@ -1,24 +1,29 @@
 Puppet::Face.define(:module, '1.0.0') do
   action(:login) do
     summary "Login to the forge"
-    description <<-HEREDOC
-      Logs a user into the forge and creates necessary credentials files.
-    HEREDOC
-    returns "TODO"
+    description <<-EOT
+      This command persists a forge authentication token to a file, so that
+      forge actions can be performed without requiring your username and
+      password every time.
+    EOT
 
+    returns <<-EOT
+      Path to token file.
+    EOT
+
+    # TODO: this doesn't seem to work, could be a bug in faces
     examples <<-EOT
       Login user:
 
       $ puppet module login
       Username: johnsmith
-      Password:
+      Password: xxxxxx
     EOT
 
     when_invoked do |options|
       Puppet::ModuleTool.set_option_defaults options
 
-      # Prompt for username
-      # Prompt for password
+      # Prompt for username & password
       username = Puppet::Util::Terminal.prompt "Username: "
       password = Puppet::Util::Terminal.prompt "Password: ", :silent => true
 
@@ -29,25 +34,27 @@ Puppet::Face.define(:module, '1.0.0') do
         :password => password
       )
 
-      begin
-        # Attempt to retrieve existing token
-        token = forge.token
+      # Attempt to retrieve existing token
+      token = forge.token
 
-        # Persist token to credentials file
-        # TODO: abstract or not?
-        File.open(Puppet[:forge_credentials], 'w') do |file|
-          file.write(token.to_pson)
-        end
-        puts "Valid user, credentials are written ..."
-        return
-      rescue RuntimeError
-        # TODO: handle failure ...
-        {}
+      # Persist token to credentials file
+      File.open(Puppet[:forge_credentials], 'w') do |file|
+        contents = token.to_pson
+        file.write(contents)
       end
+
+      {
+        :file => Puppet[:forge_credentials],
+        :token => token[:authentication_token],
+        :username => username,
+      }
     end
 
     when_rendering :console do |result|
-      result.inspect
+      <<-EOT.gsub(/^\s*/, '')
+        User #{result[:username]} successfully authenticated.
+        Token stored in file #{result[:file]}.
+      EOT
     end
   end
 
