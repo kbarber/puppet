@@ -97,7 +97,7 @@ class Puppet::Forge
       'checksum' => Digest::SHA1.hexdigest(command_pson),
     }
 
-    repository.post("/api/v1/commands", params)
+    repository.post("/api/commands", params)
   end
 
   # @!group Token Related Instance Methods
