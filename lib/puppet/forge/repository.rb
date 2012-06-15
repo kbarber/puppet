@@ -154,7 +154,8 @@ class Puppet::Forge
         request = Net::HTTP::Get.new(path, initheader)
       when :post
         request = Net::HTTP::Post.new(path, initheader)
-        request.set_form_data(params)
+        request.content_type = 'application/json'
+        request.body = params.to_pson
       when :head
         request = Net::HTTP::Head.new(path, initheader)
       when :put

@@ -90,14 +90,8 @@ class Puppet::Forge
       :version => version,
       :payload => payload,
     }
-    command_pson = command.to_pson
 
-    params = {
-      'payload'  => command_pson,
-      'checksum' => Digest::SHA1.hexdigest(command_pson),
-    }
-
-    repository.post("/api/commands", params)
+    repository.post("/api/commands", command)
   end
 
   # @!group Token Related Instance Methods
