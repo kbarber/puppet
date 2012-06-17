@@ -108,7 +108,6 @@ Puppet::Face.define(:module, '1.0.0') do
     end
 
     option "--modulepath MODULEPATH" do
-      default_to { Puppet.settings[:modulepath] }
       summary "Which directories to look for modules in"
       description <<-EOT
         The list of directories to check for modules. When installing a new
@@ -146,6 +145,9 @@ Puppet::Face.define(:module, '1.0.0') do
     end
 
     when_invoked do |name, options|
+      Puppet.settings[:environment] = options[:environment]
+      options[:modulepath] ||= Puppet.settings.value(:modulepath, options[:environment])
+
       sep = File::PATH_SEPARATOR
       if options[:target_dir]
         options[:target_dir] = File.expand_path(options[:target_dir])
