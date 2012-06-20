@@ -81,8 +81,7 @@ class Puppet::Forge
   #
   # @param command [String] command to send to the forge.
   # @param version [Fixnum] version of the command.
-  # @param payload [String] string of payload. For complex structures it is
-  #   recommended to use JSON, or for binary data you can use base64.
+  # @param payload [String, Hash, Array] Payload object.
   # @return [Net::HTTPResponse] object representation of the http response.
   def submit_command(command, version, payload)
     command = {
@@ -119,15 +118,15 @@ class Puppet::Forge
   # Publish a module to the forge using a module package file
   #
   # @param file [File] the file reference to publish
-  def module_publish(file)
+  def publish_module(file)
     original = file.read
 
     base64 = Base64.encode64(original)
     payload = {
-      'module' => base64,
+      'content' => base64,
     }
 
-    response = submit_command("publish module", 1, payload.to_pson)
+    response = submit_command("publish module", 1, payload)
     case response.code
     when "200"
       matches = PSON.parse(response.body)
@@ -141,6 +140,7 @@ class Puppet::Forge
         raise RuntimeError, "HTTP Error: #{error} (Status #{response.code})"
       end
     end
+    matches
   end
 
   # @!endgroup

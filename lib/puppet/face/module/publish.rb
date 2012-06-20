@@ -64,13 +64,12 @@ Puppet::Face.define(:module, '1.0.0') do
         )
       end
 
-      result = forge.module_publish(File.open(module_file))
-      result.body
+      result = forge.publish_module(File.open(module_file))
+      result
     end
 
     when_rendering :console do |result|
-      result.inspect
-      "Module submitted for publishing"
+      "Module submitted for publishing: #{result.inspect}"
     end
   end
 
