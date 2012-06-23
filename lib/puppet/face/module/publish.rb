@@ -40,15 +40,18 @@ Puppet::Face.define(:module, '1.0.0') do
       # or http basic auth.
       if File.exists?(Puppet[:forge_credentials])
         token = nil
+        username = nil
         File.open(Puppet[:forge_credentials], 'r') do |file|
           creds = PSON.parse(file.read)
           token = creds['authentication_token']
+          username = creds['username']
         end
 
         forge = Puppet::Forge.new(
           :consumer_name => "PMT",
           :consumer_semver => self.version,
-          :auth_token => token
+          :username => username,
+          :authentication_token => token
         )
       else
         puts "Credentials file does not exist, falling back to basic auth."

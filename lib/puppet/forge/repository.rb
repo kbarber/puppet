@@ -19,7 +19,7 @@ class Puppet::Forge
     #   authentication
     # @option opts [String] :password Password to use for HTTP basic
     #   authentication
-    # @option opts [String] :auth_token Authentication token to use when
+    # @option opts [String] :authentication_token Authentication token to use when
     #   interacting with the Forge.
     # @option opts [String] :consumer_name A name to be used for identifying the
     #   consumer of the Forge.
@@ -170,8 +170,12 @@ class Puppet::Forge
 
       if ! @opts[:username].nil? && ! @opts[:password].nil?
         request.basic_auth(@opts[:username], @opts[:password])
-      elsif ! @opts[:auth_token].nil?
-        request['X-Auth-Token'] = @opts[:auth_token]
+      elsif ! @opts[:authentication_token].nil?
+        combined = @opts[:username] + ':' + @opts[:authentication_token]
+        # Since the base64 function splits on carriage return, we join it again
+        # here as line wraps in a header are bad.
+        x_auth_token = Base64.encode64(combined).split("\n").join
+        request['X-Auth-Token'] = x_auth_token
       end
 
       begin
