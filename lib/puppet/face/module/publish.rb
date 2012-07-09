@@ -13,14 +13,22 @@ Puppet::Face.define(:module, '1.0.0') do
       Publish a module by specifying the file name:
 
       $ puppet module publish johnsmith-mymodule-1.0.0.tar.gz
-      TODO
+      Module submitted for publishing
+
+      Publish a module by providing a directory:
+
+      $ puppet module publish /home/johnsmith/johnsmith-mymodule
+      Building /home/johnsmith/johnsmith-mymodule
+      Module submitted for publishing
 
       Publish a module inside an existing module:
+
       $ puppet module publish
-      TODO
+      Building /home/johnsmith/johnsmith-mymodule
+      Module submitted for publishing
     EOT
 
-    arguments "[<module_file>]"
+    arguments "[<module_path>]"
 
     when_invoked do |*args|
       options = args.pop
@@ -28,12 +36,15 @@ Puppet::Face.define(:module, '1.0.0') do
         raise ArgumentError, "puppet module publish only accepts 0 or 1 arguments"
       end
 
-      module_file = args.first
+      module_path = args.first
 
       # If no module file was passed, try and do a build action on the current
-      # directory.
-      if module_file.nil?
-        module_file = Puppet::Face[:module, '1.0.0'].build(Dir.pwd)
+      # directory. If the module file is actually a directory, try doing a
+      # build action on the directory.
+      if module_path.nil?
+        module_path = Puppet::Face[:module, '1.0.0'].build(Dir.pwd)
+      elsif File.directory?(module_path)
+        module_path = Puppet::Face[:module, '1.0.0'].build(module_path)
       end
 
       # Depending on whether there is a credentials file, attempt token auth
@@ -67,12 +78,12 @@ Puppet::Face.define(:module, '1.0.0') do
         )
       end
 
-      result = forge.publish_module(File.open(module_file))
+      result = forge.publish_module(File.open(module_path))
       result
     end
 
     when_rendering :console do |result|
-      "Module submitted for publishing: #{result.inspect}"
+      "Module submitted for publishing"
     end
   end
 
