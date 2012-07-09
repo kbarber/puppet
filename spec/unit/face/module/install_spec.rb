@@ -184,7 +184,7 @@ describe "puppet module install" do
     install_dir = mock("InstallDir")
     forge = mock("Forge")
 
-    Puppet::Forge.expects(:new).with("PMT", subject.version).returns(forge)
+    Puppet::Forge.expects(:new).with(:consumer_name => "PMT", :consumer_semver => subject.version).returns(forge)
     Puppet::ModuleTool::InstallDirectory.expects(:new).
       with(Pathname.new(expected_options[:target_dir])).
       returns(install_dir)

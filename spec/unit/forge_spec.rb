@@ -21,10 +21,10 @@ describe Puppet::Forge do
   EOF
   end
 
-  let(:forge) { Puppet::Forge.new("test_agent", SemVer.new("v1.0.0")) }
+  let(:forge) { Puppet::Forge.new(:consumer_name => "test_agent", :consumer_semver => SemVer.new("v1.0.0")) }
 
   def repository_responds_with(response)
-    Puppet::Forge::Repository.any_instance.stubs(:make_http_request).returns(response)
+    Puppet::Forge::Repository.any_instance.stubs(:get).returns(response)
   end
 
   it "returns a list of matches from the forge when there are matches for the search term" do

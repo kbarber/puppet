@@ -5,9 +5,14 @@ require 'puppet/forge/cache'
 require 'puppet/forge/errors'
 
 describe Puppet::Forge::Repository do
-  let(:consumer_version) { "Test/1.0" }
-  let(:repository) { Puppet::Forge::Repository.new('http://fake.com', consumer_version) }
-  let(:ssl_repository) { Puppet::Forge::Repository.new('https://fake.com', consumer_version) }
+  let(:consumer_name) { "Test" }
+  let(:consumer_semver) { SemVer.new("1.0.0") }
+  let(:consumer_version) { "Test/1.0.0" }
+  let(:repository) {
+    Puppet::Forge::Repository.new('http://fake.com',
+      :consumer_semver => consumer_semver,
+      :consumer_name => consumer_name)
+  }
 
   it "retrieve accesses the cache" do
     uri = URI.parse('http://some.url.com')
@@ -56,7 +61,7 @@ describe Puppet::Forge::Repository do
         http.expects(:request).with(responds_with(:path, "the_path"))
       end
 
-      repository.make_http_request("the_path").should == result
+      repository.get("the_path").should == result
     end
 
     it 'returns the result object from a request with ssl' do
@@ -86,16 +91,16 @@ describe Puppet::Forge::Repository do
 
     it "sets the user agent for the request" do
       performs_an_http_request do |http|
-        http.expects(:request).with() do |request|
+        http.expects(:request).with(responds_with(:path, "the_path")) do |request|
           puppet_version = /Puppet\/\d+\..*/
           os_info = /\(.*\)/
           ruby_version = /Ruby\/\d+\.\d+\.\d+(-p\d+)? \(\d{4}-\d{2}-\d{2}; .*\)/
 
-          request["User-Agent"] =~ /^#{consumer_version} #{puppet_version} #{os_info} #{ruby_version}/
+          request["User-Agent"].should =~ /^#{consumer_version} #{puppet_version} #{os_info} #{ruby_version}/
         end
       end
 
-      repository.make_http_request("the_path")
+      repository.get("the_path")
     end
 
     def performs_an_http_request(result = nil, &block)
