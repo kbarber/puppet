@@ -369,7 +369,7 @@ module Puppet
         :desc     => "The directory into which module tool data is stored",
     },
     :forge_credentials => {
-      :default => "$confdir/forge_credentials.yml",
+      :default => "$confdir/forge.auth",
       :type    => :file,
       :desc    => 'Path to forge credentials file',
     }
