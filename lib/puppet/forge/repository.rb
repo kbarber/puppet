@@ -27,7 +27,7 @@ class Puppet::Forge
     #   version of the consumer
     def initialize(uri, opts)
       @opts = opts
-      @uri = url.is_a?(::URI) ? url : ::URI.parse(url)
+      @uri = uri.is_a?(::URI) ? uri : ::URI.parse(uri)
       @cache = Cache.new(self)
     end
 

@@ -13,6 +13,11 @@ describe Puppet::Forge::Repository do
       :consumer_semver => consumer_semver,
       :consumer_name => consumer_name)
   }
+  let(:ssl_repository) {
+    Puppet::Forge::Repository.new('https://fake.com',
+      :consumer_semver => consumer_semver,
+      :consumer_name => consumer_name)
+  }
 
   it "retrieve accesses the cache" do
     uri = URI.parse('http://some.url.com')
@@ -70,7 +75,7 @@ describe Puppet::Forge::Repository do
         http.expects(:request).with(responds_with(:path, "the_path"))
       end
 
-      ssl_repository.make_http_request("the_path").should == result
+      ssl_repository.get("the_path").should == result
     end
 
     it 'return a valid exception when there is an SSL verification problem' do
@@ -78,7 +83,7 @@ describe Puppet::Forge::Repository do
         http.expects(:request).with(responds_with(:path, "the_path")).raises OpenSSL::SSL::SSLError.new("certificate verify failed")
       end
 
-      expect { ssl_repository.make_http_request("the_path") }.to raise_error Puppet::Forge::Errors::SSLVerifyError, 'Unable to verify the SSL certificate at https://fake.com'
+      expect { ssl_repository.get("the_path") }.to raise_error Puppet::Forge::Errors::SSLVerifyError, 'Unable to verify the SSL certificate at https://fake.com'
     end
 
     it 'return a valid exception when there is a communication problem' do
@@ -86,7 +91,7 @@ describe Puppet::Forge::Repository do
         http.expects(:request).with(responds_with(:path, "the_path")).raises SocketError
       end
 
-      expect { repository.make_http_request("the_path") }.to raise_error Puppet::Forge::Errors::CommunicationError, 'Unable to connect to the server at http://fake.com'
+      expect { repository.get("the_path") }.to raise_error Puppet::Forge::Errors::CommunicationError, 'Unable to connect to the server at http://fake.com'
     end
 
     it "sets the user agent for the request" do
