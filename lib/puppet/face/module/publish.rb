@@ -36,16 +36,9 @@ Puppet::Face.define(:module, '1.0.0') do
         raise ArgumentError, "puppet module publish only accepts 0 or 1 arguments"
       end
 
-      module_path = args.first
+      module_path = args.first || Dir.pwd
 
-      # If no module file was passed, try and do a build action on the current
-      # directory. If the module file is actually a directory, try doing a
-      # build action on the directory.
-      if module_path.nil?
-        module_path = Puppet::Face[:module, '1.0.0'].build(Dir.pwd)
-      elsif File.directory?(module_path)
-        module_path = Puppet::Face[:module, '1.0.0'].build(module_path)
-      end
+      pkg_path = Puppet::Face[:module, '1.0.0'].build(module_path)
 
       # Depending on whether there is a credentials file, attempt token auth
       # or http basic auth.
