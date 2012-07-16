@@ -36,8 +36,7 @@ Puppet::Face.define(:module, '1.0.0') do
         raise ArgumentError, "puppet module publish only accepts 0 or 1 arguments"
       end
 
-      module_path = args.first || Dir.pwd
-
+      module_path = args.first
       pkg_path = Puppet::Face[:module, '1.0.0'].build(module_path)
 
       # Depending on whether there is a credentials file, attempt token auth
@@ -71,7 +70,7 @@ Puppet::Face.define(:module, '1.0.0') do
         )
       end
 
-      result = forge.publish_module(File.open(module_path))
+      result = forge.publish_module(File.open(pkg_path))
       result
     end
 
