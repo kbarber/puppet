@@ -1,8 +1,11 @@
 require 'fileutils'
+require 'archive/tar/minitar'
+require 'zlib'
 
 module Puppet::ModuleTool
   module Applications
     class Builder < Application
+      include Archive::Tar
 
       def initialize(path, options = {})
         @path = File.expand_path(Puppet::ModuleTool.find_module_root(path))
@@ -16,9 +19,9 @@ module Puppet::ModuleTool
         copy_contents
         add_metadata
         Puppet.notice "Building #{@path} for release"
-        tar
-        gzip
-        relative = Pathname.new(File.join(@pkg_path, filename('tar.gz'))).relative_path_from(Pathname.new(Dir.pwd))
+        targzip_file
+        relative = Pathname.new(File.join(@pkg_path,
+          filename('tar.gz'))).relative_path_from(Pathname.new(Dir.pwd))
 
         # Return the Pathname object representing the path to the release
         # archive just created. This return value is used by the module_tool
@@ -32,30 +35,46 @@ module Puppet::ModuleTool
         relative
       end
 
-      private
-
       def filename(ext)
         ext.sub!(/^\./, '')
         "#{metadata.release_name}.#{ext}"
       end
 
-      def tar
-        tar_name = filename('tar')
+      # This method creates the necessary tar.gz file from the contents of
+      # the package directory.
+      def targzip_file
         Dir.chdir(@pkg_path) do
-          FileUtils.rm tar_name rescue nil
-          unless system "tar -cf #{tar_name} #{metadata.release_name}"
-            raise RuntimeError, "Could not create #{tar_name}"
+          File.open(filename('tar.gz'), 'wb') do |gzip_file|
+            sgz = Zlib::GzipWriter.new(gzip_file)
+            tar = Minitar::Output.new(sgz)
+            Dir.glob("#{metadata.release_name}/**") do |file|
+              Minitar.pack_file(minitar_entry(file), tar)
+            end
+            tar.close
           end
         end
       end
 
-      def gzip
-        Dir.chdir(@pkg_path) do
-          FileUtils.rm filename('tar.gz') rescue nil
-          unless system "gzip #{filename('tar')}"
-            raise RuntimeError, "Could not compress #{filename('tar')}"
-          end
-        end
+      # Given a file name, return a hash that is compatible with
+      # Archive::Tar::Minitar.pack_file.
+      #
+      # We do this for control, so we can simplify the way files are saved
+      # in the tarball:
+      # * uid and gid is set to zero
+      # * No setuid, setgid or sticky bit
+      # * No world writeable files
+      #
+      # @param file_name [String] name of file to analyze
+      # @return [Hash{Symbol=>Any}] pack_file compatible hash
+      def minitar_entry(file_name)
+        stat = File.stat(file_name)
+        entry = {
+          :name => file_name,
+          :uid => 0,
+          :gid => 0,
+          :mode => stat.mode & 0o775,
+          :mtime => stat.mtime,
+        }
       end
 
       def create_directory
