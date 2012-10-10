@@ -53,6 +53,26 @@ module Puppet::Forge
       return Puppet.settings[:http_proxy_port]
     end
 
+    def http_proxy_user
+      env = http_proxy_env
+
+      if env and env.user then
+        return env.user
+      end
+
+      return nil
+    end
+
+    def http_proxy_pass
+      env = http_proxy_env
+
+      if env and env.password then
+        return env.password
+      end
+
+      return nil
+    end
+
     # Return a Net::HTTPResponse read for this +request+.
     def make_http_request(request, options = {})
       if ! @uri.user.nil? && ! @uri.password.nil?
@@ -66,7 +86,9 @@ module Puppet::Forge
       begin
         Net::HTTP::Proxy(
             http_proxy_host,
-            http_proxy_port
+            http_proxy_port,
+            http_proxy_user,
+            http_proxy_pass
             ).start(@uri.host, @uri.port) do |http|
           http.request(request)
         end
