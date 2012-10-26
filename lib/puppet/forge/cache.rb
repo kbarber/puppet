@@ -34,7 +34,16 @@ module Puppet::Forge
 
     # Return contents of file at the given URI's +uri+.
     def read_retrieve(uri)
-      return uri.read
+      puts uri.to_s
+      request = Net::HTTP::Get.new(uri.path)
+      response = @repository.make_http_request(request)
+
+      case response.code
+      when "200"
+        return response.body
+      else
+        raise RuntimeError, "Could not retrieve file (HTTP #{response.code})"
+      end
     end
 
     # Return Pathname for repository's cache directory, create it if needed.
