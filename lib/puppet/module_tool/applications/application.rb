@@ -24,16 +24,6 @@ module Puppet::ModuleTool
         raise NotImplementedError, "Should be implemented in child classes."
       end
 
-      def discuss(response, success, failure)
-        case response
-        when Net::HTTPOK, Net::HTTPCreated
-          Puppet.notice success
-        else
-          errors = PSON.parse(response.body)['error'] rescue "HTTP #{response.code}, #{response.body}"
-          Puppet.warning "#{failure} (#{errors})"
-        end
-      end
-
       def metadata(require_modulefile = false)
         unless @metadata
           unless @path
@@ -52,11 +42,6 @@ module Puppet::ModuleTool
           end
         end
         @metadata
-      end
-
-      def load_modulefile!
-        @metadata = nil
-        metadata(true)
       end
 
       def parse_filename(filename)

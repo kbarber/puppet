@@ -30,7 +30,9 @@ module Puppet::ModuleTool
 
       private
       def extract_module_to_install_dir
-        delete_existing_installation_or_abort!
+        if @module_dir.exist?
+          FileUtils.rm_rf(@module_dir, :secure => true)
+        end
 
         build_dir.mkpath
         begin
@@ -58,10 +60,6 @@ module Puppet::ModuleTool
         end
       end
 
-      def delete_existing_installation_or_abort!
-        return unless @module_dir.exist?
-        FileUtils.rm_rf(@module_dir, :secure => true)
-      end
     end
   end
 end

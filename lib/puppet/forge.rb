@@ -15,40 +15,6 @@ class Puppet::Forge
     @consumer_semver = consumer_semver
   end
 
-  # Return a list of module metadata hashes that match the search query.
-  # This return value is used by the module_tool face install search,
-  # and displayed to on the console.
-  #
-  # Example return value:
-  #
-  # [
-  #   {
-  #     "author"      => "puppetlabs",
-  #     "name"        => "bacula",
-  #     "tag_list"    => ["backup", "bacula"],
-  #     "releases"    => [{"version"=>"0.0.1"}, {"version"=>"0.0.2"}],
-  #     "full_name"   => "puppetlabs/bacula",
-  #     "version"     => "0.0.2",
-  #     "project_url" => "http://github.com/puppetlabs/puppetlabs-bacula",
-  #     "desc"        => "bacula"
-  #   }
-  # ]
-  #
-  def search(term)
-    server = Puppet.settings[:module_repository]
-    Puppet.notice "Searching #{server} ..."
-    response = repository.make_http_request("/modules.json?q=#{URI.escape(term)}")
-
-    case response.code
-    when "200"
-      matches = PSON.parse(response.body)
-    else
-      raise RuntimeError, "Could not execute search (HTTP #{response.code})"
-    end
-
-    matches
-  end
-
   def remote_dependency_info(author, mod_name, version)
     version_string = version ? "&version=#{version}" : ''
     response = repository.make_http_request("/api/v1/releases.json?module=#{author}/#{mod_name}#{version_string}")
