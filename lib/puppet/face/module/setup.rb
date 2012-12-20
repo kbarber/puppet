@@ -1,6 +1,6 @@
 Puppet::Face.define(:module, '1.0.0') do
-  action(:selfupdate) do
-    summary "Update version of the Puppet module face"
+  action(:setup) do
+    summary "Install the module face"
     description <<-EOT
       TODO
     EOT
@@ -22,7 +22,7 @@ Puppet::Face.define(:module, '1.0.0') do
         Puppet.err(return_value[:error][:multiline])
         exit 1
       else
-        return_value[:install_dir]
+        'Puppet module face installed successfully'
       end
     end
 
