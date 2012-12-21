@@ -180,15 +180,6 @@ class Puppet::Module
     environment.module_requirements[self.forge_name] || {}
   end
 
-  def has_local_changes?
-    changes = Puppet::ModuleTool::Applications::Checksummer.run(path)
-    !changes.empty?
-  end
-
-  def local_changes
-    Puppet::ModuleTool::Applications::Checksummer.run(path)
-  end
-
   # Identify and mark unmet dependencies.  A dependency will be marked unmet
   # for the following reasons:
   #
