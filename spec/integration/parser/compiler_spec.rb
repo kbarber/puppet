@@ -1257,6 +1257,37 @@ describe Puppet::Parser::Compiler do
       end
     end
 
+    # As documented here: https://docs.puppetlabs.com/puppet/latest/reference/metaparameter.html#alias
+    describe "relationships to resource aliases" do
+      [ 'before',
+        'subscribe',
+        'notify',
+        'require'].each do |meta_param|
+        it "should compile correctly when used on parameter #{meta_param}" do
+          compile_to_catalog(<<-PP)
+            notify{ x : alias => y }
+            notify{ z : #{meta_param} => Notify[y] }
+          PP
+        end
+      end
+    end
+
+    # This was tested in PuppetDB, and we performed munging on it, which means
+    # at one point this was allowed.
+    describe "relationships to trailing forward slashes" do
+      [ 'before',
+        'subscribe',
+        'notify',
+        'require'].each do |meta_param|
+        it "should compile correctly when used on parameter #{meta_param}" do
+          compile_to_catalog(<<-PP)
+            file{ '/tmp/foo/': }
+            notify{ z : #{meta_param} => File['/tmp/foo'] }
+          PP
+        end
+      end
+    end
+
     describe "relationships can be formed" do
       def extract_name(ref)
         ref.sub(/File\[(\w+)\]/, '\1')
