@@ -9,6 +9,8 @@ Puppet::Type.newtype(:whit) do
     desc "The name of the whit, because it must have one."
   end
 
+  # Used for storing the original resource
+  attr_accessor :original_resource
 
   # Hide the fact that we're a whit from logs.
   #

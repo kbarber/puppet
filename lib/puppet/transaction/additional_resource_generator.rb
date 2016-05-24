@@ -81,12 +81,12 @@ class Puppet::Transaction::AdditionalResourceGenerator
 
     made.values.each do |res|
       # This resource isn't 'completed' until each child has run
-      add_conditional_directed_dependency(res, sentinel, Puppet::Graph::RelationshipGraph::Default_label)
+      add_conditional_directed_dependency(res, sentinel, Puppet::Graph::RelationshipGraph::Default_label.merge({:type => :contained_in}))
     end
 
     # This edge allows the resource's events to propagate, though it isn't
     # strictly necessary for ordering purposes
-    add_conditional_directed_dependency(resource, sentinel, Puppet::Graph::RelationshipGraph::Default_label)
+    add_conditional_directed_dependency(resource, sentinel, Puppet::Graph::RelationshipGraph::Default_label.merge({:type => :contained_in}))
   end
 
   def redirect_edges_to_sentinel(resource, sentinel, made)
@@ -124,7 +124,7 @@ class Puppet::Transaction::AdditionalResourceGenerator
       else
         @catalog.add_resource_after(parent_resource, res)
       end
-      @catalog.add_edge(@catalog.container_of(parent_resource), res)
+      @catalog.add_edge(@catalog.container_of(parent_resource), res, {:type => :contains, :creation_method => :auto})
       if @relationship_graph && priority
         # If we have a relationship_graph we should add the resource
         # to it (this is an eval_generate). If we don't, then the

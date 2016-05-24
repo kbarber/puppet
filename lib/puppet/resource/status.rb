@@ -83,6 +83,10 @@ module Puppet
       #     while evaluating `@real_resource`.
       attr_reader :events
 
+      # TODO: document
+      attr_reader :original_parameters
+      attr_reader :parameters
+
       # @!attribute [rw] failed_dependencies
       #   @return [Array<Puppet::Resource>] A cache of all
       #   dependencies of this resource that failed to apply.
@@ -97,7 +101,7 @@ module Puppet
       YAML_ATTRIBUTES = %w{@resource @file @line @evaluation_time @change_count
                            @out_of_sync_count @tags @time @events @out_of_sync
                            @changed @resource_type @title @skipped @failed
-                           @containment_path}.
+                           @containment_path @parameters @original_parameters}.
         map(&:to_sym)
 
       def self.from_data_hash(data)
@@ -143,6 +147,12 @@ module Puppet
       end
 
       def initialize(resource)
+        # Lets restore the original resource for the purpose of status
+        if(resource.is_a? Puppet::Type::Whit) then
+          if(resource.original_resource) then
+            resource = resource.original_resource
+          end
+        end
         @real_resource = resource
         @source_description = resource.path
         @containment_path = resource.pathbuilder
@@ -153,6 +163,27 @@ module Puppet
         @out_of_sync = false
         @skipped = false
         @failed = false
+        @original_parameters = resource.original_parameters
+        res_parameters = resource.parameters
+        @parameters = {}
+        res_parameters.each do |pk,pv|
+          new_hash = {}
+          opv = @original_parameters[pk]
+          if opv != nil
+            new_hash["master_catalog_value"] = opv
+          end
+          if pv.value != nil
+            new_hash["agent_catalog_value"] = pv.value
+          end
+          if pv.is_a? Puppet::Property
+            new_hash["property"] = true
+          elsif pv.is_a? Puppet::Parameter
+            new_hash["property"] = false
+          end
+
+          @parameters[pk.to_s] ||= {}
+          @parameters[pk.to_s]["current"] = new_hash
+        end
 
         @file = resource.file
         @line = resource.line
@@ -181,7 +212,8 @@ module Puppet
         @changed = data['changed']
         @skipped = data['skipped']
         @failed = data['failed']
-
+        @original_parameters = data['original_parameters']
+        @parameters = data['parameters']
         @events = data['events'].map do |event|
           # in YAML (for reports) we serialize this as an object, but
           # in PSON it becomes a hash. Depending on where we came from
@@ -212,6 +244,8 @@ module Puppet
           'change_count' => @change_count,
           'out_of_sync_count' => @out_of_sync_count,
           'events' => @events,
+          'original_parameters' => @original_parameters,
+          'parameters' => @parameters,
         }
       end
 

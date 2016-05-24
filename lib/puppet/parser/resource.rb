@@ -67,7 +67,7 @@ class Puppet::Parser::Resource < Puppet::Resource
     end
 
     self[:stage] ||= stage.title unless stage.title == :main
-    catalog.add_edge(stage, self)
+    catalog.add_edge(stage, self, {:type => :contains, :creation_method => :auto})
   end
 
   # Retrieve the associated definition and evaluate it.

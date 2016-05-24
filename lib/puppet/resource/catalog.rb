@@ -478,7 +478,7 @@ class Puppet::Resource::Catalog < Puppet::Graph::SimpleGraph
       'catalog_format' => catalog_format,
       'environment'  => environment.to_s,
       'resources' => @resources.collect { |v| @resource_table[v].to_data_hash },
-      'edges'     => edges.   collect { |e| e.to_data_hash },
+      'edges'     => edges.collect { |e| e.to_data_hash },
       'classes'   => classes,
     }.merge(metadata_hash.empty? ? {} : {'metadata' => metadata_hash})
      .merge(recursive_metadata_hash.empty? ? {} : {'recursive_metadata' => recursive_metadata_hash})

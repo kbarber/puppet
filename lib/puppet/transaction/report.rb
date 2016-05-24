@@ -39,6 +39,9 @@ class Puppet::Transaction::Report
 
   indirects :report, :terminus_class => :processor
 
+  # TODO: document
+  attr_accessor :edges
+
   # The version of the configuration
   # @todo Uncertain what this is?
   # @return [???] the configuration version
@@ -118,6 +121,10 @@ class Puppet::Transaction::Report
   #
   attr_reader :noop_pending
 
+  # TODO: document
+  attr_accessor :last_report
+  attr_reader :last_transaction_uuid
+
   def self.from_data_hash(data)
     obj = self.allocate
     obj.initialize_from_hash(data)
@@ -173,13 +180,25 @@ class Puppet::Transaction::Report
   end
 
   # @api private
-  def prune_internal_data
-    resource_statuses.delete_if {|name,res| res.resource_type == 'Whit'}
+  #def prune_internal_data
+  #  resource_statuses.delete_if {|name,res| res.resource_type == 'Whit'}
+  #end
+
+  def return_last_report
+    # TODO: here we are just dummying a request, since the report cache shouldn't care about
+    # a real request.
+    require 'ostruct'
+    request = OpenStruct.new
+
+    if Puppet::Transaction::Report.indirection.cache?
+      return Puppet::Transaction::Report.indirection.cache.find(request)
+    end
   end
 
   # @api private
   def finalize_report
-    prune_internal_data
+    # Removed so we see whits in the final resource_statuses
+    #prune_internal_data
 
     resource_metrics = add_metric(:resources, calculate_resource_metrics)
     add_metric(:time, calculate_time_metrics)
@@ -188,10 +207,112 @@ class Puppet::Transaction::Report
     add_metric(:events, calculate_event_metrics)
     @status = compute_status(resource_metrics, change_metric)
     @noop_pending = @resource_statuses.any? { |name,res| has_noop_events?(res) }
+
+    @last_report = return_last_report
+
+    if @last_report != nil
+      # Clear out the last report, so we don't get a continuing store of them when we save to cache
+      @last_report.last_report = nil
+
+      # Sets the last_transaction_uuid field from the last report
+      @last_transaction_uuid = @last_report.transaction_uuid
+    end
+
+    # Put the last report status parameters inside the new status parameters
+    resource_statuses.each do |name, status|
+      if @last_report != nil && @last_report.resource_statuses[name] != nil
+        @last_report.resource_statuses[name].parameters.each do |k,v|
+          status.parameters[k] ||= {}
+          status.parameters[k]["last"] = v["current"]
+        end
+      end
+
+      # Iterate across each parameter, for inference time
+      status.parameters.each do |k,v|
+        inference = {}
+        last = v["last"]
+        current = v["current"]
+
+        begin
+
+        #####################################################
+        # Smallest calculation for remediation, noop or not #
+        #####################################################
+        # This is possibly the smallest amount of information to guess remediation
+        # this works for noop and success events also. The resolution loss, is
+        # that this does not detect all cases of 'unexpected changes' we need
+        # more data for this. Also, it doesn't ignore idempotency issues.
+
+        # For us to calculate this later on the service, we could inject
+        # inject 'agent_catalog_value' in the agent (lets call it, last_actual_report_value) and
+        # compare previous_value and last_report_value later to determine remediation?
+
+        # For noop runs though, last_actual_report_value must == last.event.previous_value,
+        # as agent_value is the intention, not the reality. I think in this case it will
+        # correct those cases.
+
+        # This means however we need to store all properties at least (parameters won't
+        # be completely necessary) for all resources independently of events. Probably
+        # in ResourceStatus as perhaps its own class?
+
+        #inference["remediation"] = last != nil &&
+        #                           current["event"] != nil &&
+        #                           current["event"].previous_value != last["agent_catalog_value"]
+
+        ########
+        # CORE #
+        ########
+
+        inference["managed"] = current["master_catalog_value"] != nil
+        inference["has_current_event"] = current["event"] != nil
+        inference["has_previous_data"] = last != nil
+
+        #########
+        # MIXED #
+        #########
+
+        inference["has_previous_event"] = inference["has_previous_data"] &&
+                                          last["event"] != nil
+        inference["puppet_change"] = inference["has_current_event"] &&
+                                     current["event"].status == "success"
+        inference["puppet_change_noop"] = inference["has_current_event"] &&
+                                          current["event"].status == "noop"
+        inference["previously_managed"] = inference["has_previous_data"] &&
+                                          last["master_catalog_value"] != nil
+        inference["agent_value_change"] = inference["has_previous_data"] &&
+                                          current["agent_catalog_value"] != last["agent_catalog_value"]
+        inference["pre_event_value_differs_from_last"] = inference["has_previous_data"] &&
+                                                         inference["has_current_event"] &&
+                                                         current["event"].previous_value != last["agent_catalog_value"]
+
+        ###################
+        # ONLY INFERENCES #
+        ###################
+
+        inference["newly_managed"] = inference["managed"] && !inference["previously_managed"]
+        inference["newly_unmanaged"] = !inference["managed"] && inference["previously_managed"]
+        inference["catalog_changed"] = inference["managed"] && inference["agent_value_change"] || inference["newly_managed"] || inference["newly_unmanaged"]
+
+        inference["unexpected_change"] = inference["pre_event_value_differs_from_last"] ||
+                                         inference["has_previous_data"] && !inference["puppet_change"] && inference["catalog_changed"] && current["property"]
+        inference["remediated_change"] = inference["unexpected_change"] && inference["puppet_change"]
+        inference["pending_remediation"] = inference["unexpected_change"] && inference["puppet_change_noop"]
+
+        rescue => x
+          puts x
+          puts x.backtrace.join("\n")
+          raise x
+        end
+
+        # Store the inference to the relative parameter
+        status.parameters[k]["inference"] = inference
+      end
+    end
   end
 
   # @api private
   def initialize(kind, configuration_version=nil, environment=nil, transaction_uuid=nil)
+    @edges = nil
     @metrics = {}
     @logs = []
     @resource_statuses = {}
@@ -203,6 +324,7 @@ class Puppet::Transaction::Report
     @puppet_version = Puppet.version
     @configuration_version = configuration_version
     @transaction_uuid = transaction_uuid
+    @last_transaction_uuid = nil
     @code_id = nil
     @catalog_uuid = nil
     @cached_catalog_status = nil
@@ -216,8 +338,10 @@ class Puppet::Transaction::Report
   def initialize_from_hash(data)
     @puppet_version = data['puppet_version']
     @report_format = data['report_format']
+    @edges = data['edges']
     @configuration_version = data['configuration_version']
     @transaction_uuid = data['transaction_uuid']
+    @last_transaction_uuid = data['last_transaction_uuid']
     @environment = data['environment']
     @status = data['status']
     @noop = data['noop']
@@ -266,8 +390,10 @@ class Puppet::Transaction::Report
     {
       'host' => @host,
       'time' => @time.iso8601(9),
+      'edges' => @edges,
       'configuration_version' => @configuration_version,
       'transaction_uuid' => @transaction_uuid,
+      'last_transaction_uuid' => @last_transaction_uuid,
       'catalog_uuid' => @catalog_uuid,
       'code_id' => @code_id,
       'cached_catalog_status' => @cached_catalog_status,
@@ -278,7 +404,6 @@ class Puppet::Transaction::Report
       'noop' => @noop,
       'noop_pending' => @noop_pending,
       'environment' => @environment,
-
       'logs' => @logs,
       'metrics' => @metrics,
       'resource_statuses' => @resource_statuses,

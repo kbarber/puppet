@@ -153,6 +153,9 @@ class Puppet::Transaction
       end
     end
 
+    # TODO: not sure if I should do this here
+    report.edges = @catalog.relationship_graph.edges.collect { |e| e.to_data_hash }
+
     Puppet.debug "Finishing transaction #{object_id}"
   end
 
@@ -240,7 +243,9 @@ class Puppet::Transaction
     # explosion of edges, we also ended up reporting failures for containers
     # like class and stage.  This is undesirable; while just skipping the
     # output isn't perfect, it is RC-safe. --daniel 2011-06-07
-    suppress_report = (resource.class == Puppet::Type.type(:whit))
+    # TODO: for now we're taking on whits so we can see them in the report
+    suppress_report = false
+    #suppress_report = (resource.class == Puppet::Type.type(:whit))
 
     s = resource_status(resource)
     if s && s.dependency_failed?

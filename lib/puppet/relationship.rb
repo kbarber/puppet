@@ -9,7 +9,7 @@ class Puppet::Relationship
   # FormatSupport for serialization methods
   include Puppet::Network::FormatSupport
 
-  attr_accessor :source, :target, :callback
+  attr_accessor :source, :target, :callback, :type, :creation_method
 
   attr_reader :event
 
@@ -24,6 +24,12 @@ class Puppet::Relationship
     if callback = data["callback"]
       args[:callback] = callback
     end
+    if type = data["type"]
+      args[:type] = type
+    end
+    if creation_method = data["creation_method"]
+      args[:creation_method] = creation_method
+    end
 
     new(source, target, args)
   end
@@ -34,10 +40,16 @@ class Puppet::Relationship
   end
 
   def initialize(source, target, options = {})
+    require 'pp'
+    if(options && !options[:type]) then
+      pp ["caller", caller]
+      puts options.to_yaml
+    end
+
     @source, @target = source, target
 
     options = (options || {}).inject({}) { |h,a| h[a[0].to_sym] = a[1]; h }
-    [:callback, :event].each do |option|
+    [:callback, :event, :type, :creation_method].each do |option|
       if value = options[option]
         send(option.to_s + "=", value)
       end
@@ -60,6 +72,8 @@ class Puppet::Relationship
     result = {}
     result[:callback] = callback if callback
     result[:event] = event if event
+    result[:type] = type if type
+    result[:creation_method] = type if creation_method
     result
   end
 
@@ -77,7 +91,7 @@ class Puppet::Relationship
       'target' => target.to_s
     }
 
-    ["event", "callback"].each do |attr|
+    ["event", "callback", "creation_method", "type"].each do |attr|
       next unless value = send(attr)
       data[attr] = value
     end

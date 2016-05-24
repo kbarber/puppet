@@ -120,7 +120,7 @@ class Puppet::Parser::Compiler
     # This adds a resource to the class it lexically appears in in the
     # manifest.
     unless resource.class?
-      @catalog.add_edge(scope.resource, resource)
+      @catalog.add_edge(scope.resource, resource, {:type => :contains, :creation_method => :manual})
     end
   end
 

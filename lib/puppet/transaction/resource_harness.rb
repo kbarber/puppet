@@ -114,6 +114,11 @@ class Puppet::Transaction::ResourceHarness
           sync(event, param, current_value, brief_audit_message)
         end
 
+        # Here we are injecting the event into the parameters hash of the resource status
+        context.status.parameters[event.property.to_s] ||= {}
+        context.status.parameters[event.property.to_s]["current"] ||= {}
+        context.status.parameters[event.property.to_s]["current"]["event"] = event
+
         event
       else
         NO_ACTION

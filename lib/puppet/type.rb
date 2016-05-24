@@ -1541,11 +1541,15 @@ class Type
         else
           # If there's no callback, there's no point in even adding
           # a label.
-          subargs = nil
+          subargs = {}
           self.debug { "subscribes to #{related_resource.ref}" }
         end
 
-        Puppet::Relationship.new(source, target, subargs)
+        baseargs = {
+          :creation_method => :manual,
+          :type => self.name.to_sym,
+        }
+        Puppet::Relationship.new(source, target, baseargs.merge(subargs))
       end
     end
   end
@@ -2142,10 +2146,11 @@ end
           end
         end
 
+        base_options = {:type => rel_type, :creation_method => :autorequire}
         if [:require, :subscribe].include?(rel_type)
-          reqs << Puppet::Relationship.new(dep, self)
+          reqs << Puppet::Relationship.new(dep, self, base_options)
         else
-          reqs << Puppet::Relationship.new(self, dep)
+          reqs << Puppet::Relationship.new(self, dep, base_options)
         end
       }
     }

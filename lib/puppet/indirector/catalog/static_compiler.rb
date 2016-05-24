@@ -129,7 +129,7 @@ class Puppet::Resource::Catalog::StaticCompiler < Puppet::Resource::Catalog::Com
 
     children.each do |name, res|
       catalog.add_resource res
-      catalog.add_edge(resource, res)
+      catalog.add_edge(resource, res, {:type => :notsure, :creation_method => :add_children})
     end
   end
 

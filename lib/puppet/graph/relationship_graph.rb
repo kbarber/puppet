@@ -158,6 +158,7 @@ class Puppet::Graph::RelationshipGraph < Puppet::Graph::SimpleGraph
   def build_manual_dependencies
     vertices.each do |vertex|
       vertex.builddepends.each do |edge|
+        edge.creation_method = :manual
         add_edge(edge)
       end
     end
@@ -180,6 +181,8 @@ class Puppet::Graph::RelationshipGraph < Puppet::Graph::SimpleGraph
               edge.callback = :refresh
               edge.event = :ALL_EVENTS
             end
+            edge.type = rel_type
+            edge.creation_method = :auto
             add_edge(edge)
           end
         end
@@ -200,6 +203,8 @@ class Puppet::Graph::RelationshipGraph < Puppet::Graph::SimpleGraph
               edge.callback = :refresh
               edge.event = :ALL_EVENTS
             end
+            edge.type = rel_type
+            edge.creation_method = :auto
             add_edge(edge)
           end
         end
@@ -226,7 +231,7 @@ class Puppet::Graph::RelationshipGraph < Puppet::Graph::SimpleGraph
   # scale as the product of the number of external dependencies, which is
   # to say geometrically in the case of nested / chained containers.
   #
-  Default_label = { :callback => :refresh, :event => :ALL_EVENTS }
+  Default_label = { :callback => :refresh, :event => :ALL_EVENTS, :creation_method => :replace_containers_with_anchors }
   def replace_containers_with_anchors(catalog)
     stage_class      = Puppet::Type.type(:stage)
     whit_class       = Puppet::Type.type(:whit)
@@ -242,8 +247,12 @@ class Puppet::Graph::RelationshipGraph < Puppet::Graph::SimpleGraph
     admissible = Hash.new { |h,k| k }
     completed  = Hash.new { |h,k| k }
     containers.each { |x|
+      # Create new whit resources, and preserve their original resource for later during
+      # report processing.
       admissible[x] = whit_class.new(:name => "admissible_#{x.ref}", :catalog => catalog)
+      admissible[x].original_resource = x
       completed[x]  = whit_class.new(:name => "completed_#{x.ref}",  :catalog => catalog)
+      completed[x].original_resource = x
       priority = @prioritizer.priority_of(x)
       add_vertex(admissible[x], priority)
       add_vertex(completed[x], priority)
@@ -255,8 +264,8 @@ class Puppet::Graph::RelationshipGraph < Puppet::Graph::SimpleGraph
       contents = catalog.adjacent(x, :direction => :out)
       add_edge(admissible[x],completed[x]) if contents.empty? # (0)
       contents.each { |v|
-        add_edge(admissible[x],admissible[v],Default_label) # (1)
-        add_edge(completed[v], completed[x], Default_label) # (2)
+        add_edge(admissible[x],admissible[v],Default_label.merge({:type => :contains})) # (1)
+        add_edge(completed[v], completed[x], Default_label.merge({:type => :contained_in})) # (2)
       }
       # (3) & (5)
       adjacent(x,:direction => :in,:type => :edges).each { |e|
