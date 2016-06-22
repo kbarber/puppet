@@ -84,7 +84,6 @@ module Puppet
       attr_reader :events
 
       # TODO: document
-      attr_reader :original_parameters
       attr_reader :parameters
 
       # @!attribute [rw] failed_dependencies
@@ -101,7 +100,7 @@ module Puppet
       YAML_ATTRIBUTES = %w{@resource @file @line @evaluation_time @change_count
                            @out_of_sync_count @tags @time @events @out_of_sync
                            @changed @resource_type @title @skipped @failed
-                           @containment_path @parameters @original_parameters}.
+                           @containment_path @parameters}.
         map(&:to_sym)
 
       def self.from_data_hash(data)
@@ -163,23 +162,14 @@ module Puppet
         @out_of_sync = false
         @skipped = false
         @failed = false
-        @original_parameters = resource.original_parameters
-        res_parameters = resource.parameters
         @parameters = {}
-        res_parameters.each do |pk,pv|
-          new_hash = {}
-          opv = @original_parameters[pk]
-          if opv != nil
-            new_hash["master_catalog_value"] = opv
-          end
-          if pv.value != nil
-            new_hash["agent_catalog_value"] = pv.value
-          end
-          if pv.is_a? Puppet::Property
-            new_hash["property"] = true
-          elsif pv.is_a? Puppet::Parameter
-            new_hash["property"] = false
-          end
+
+        resource.parameters.each do |pk,pv|
+          new_hash = {
+            "master_catalog_value" => resource.original_parameters[pk],
+            "agent_catalog_value" => pv.value,
+            "property" => pv.is_a?(Puppet::Property),
+          }
 
           @parameters[pk.to_s] ||= {}
           @parameters[pk.to_s]["current"] = new_hash
@@ -212,7 +202,6 @@ module Puppet
         @changed = data['changed']
         @skipped = data['skipped']
         @failed = data['failed']
-        @original_parameters = data['original_parameters']
         @parameters = data['parameters']
         @events = data['events'].map do |event|
           # in YAML (for reports) we serialize this as an object, but
@@ -244,7 +233,6 @@ module Puppet
           'change_count' => @change_count,
           'out_of_sync_count' => @out_of_sync_count,
           'events' => @events,
-          'original_parameters' => @original_parameters,
           'parameters' => @parameters,
         }
       end
